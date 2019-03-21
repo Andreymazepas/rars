@@ -298,7 +298,10 @@ public class Tokenizer {
                 }
             } else { // not inside a quoted string, so be sensitive to delimiters
                 switch (c) {
+                    case '@':  // Considera @=# para evitar erros no codigo gerado pelo gcc
                     case '#':  // # denotes comment that takes remainder of line
+                        c = '#';
+                        line[linePos] = c;
                         if (tokenPos > 0) {
                             this.processCandidateToken(token, program, lineNum, theLine, tokenPos, tokenStartPos, result);
                         }

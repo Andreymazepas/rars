@@ -250,7 +250,7 @@ public class InstructionCounter extends AbstractToolAndApplication {
 
     // @Override
     protected void reset() {
-        counter = counterR = counterI = counterS = 0;
+        counter = counterR = counterI = counterS  = counterU = 0;
         lastAddress = -1;
         updateDisplay();
     }
