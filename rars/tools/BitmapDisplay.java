@@ -235,25 +235,28 @@ public class BitmapDisplay extends AbstractToolAndApplication {
     protected JComponent getHelpComponent() {
         final String helpContent =
                 "Use this program to simulate a basic bitmap display where\n" +
-                        "each memory word in a specified address space corresponds to\n" +
+                        "each memory byte in a specified address space corresponds to\n" +
                         "one display pixel in row-major order starting at the upper left\n" +
                         "corner of the display.  This tool may be run either from the\n" +
                         "Tools menu or as a stand-alone application.\n" +
                         "\n" +
                         "You can easily learn to use this small program by playing with\n" +
                         "it!   Each rectangular unit on the display represents one memory\n" +
-                        "word in a contiguous address space starting with the specified\n" +
-                        "base address.  The value stored in that word will be interpreted\n" +
-                        "as a 24-bit RGB color value with the red component in bits 16-23,\n" +
-                        "the green component in bits 8-15, and the blue component in bits 0-7.\n" +
-                        "Each time a memory word within the display address space is written\n" +
+                        "byte in a contiguous address space starting with the specified\n" +
+                        "base address.  The value stored in that byte will be interpreted\n" +
+                        "as a 8-bit RGB color value with the red component in bits 5-7,\n" +
+                        "the green component in bits 2-4, and the blue component in bits 0-1.\n" +
+                        "Each time a memory byte within the display address space is written\n" +
                         "by the program, its position in the display will be rendered in the\n" +
                         "color that its value represents.\n" +
                         "\n" +
                         "Version 1.0 is very basic and was constructed from the Memory\n" +
                         "Reference Visualization tool's code.  Feel free to improve it and\n" +
                         "send your code for consideration in the next release.\n" +
-                        "\n";
+                        "\n" +
+                        "This adapted version uses a sort of frame buffer where different\n"+
+                        "frames can be stored in different locations and switched by writing\n"+
+                        "to memory region 0xFF200604.";
         JButton help = new JButton("Help");
         help.addActionListener(
                 new ActionListener() {
@@ -406,9 +409,9 @@ public class BitmapDisplay extends AbstractToolAndApplication {
     //dataBaseAddress=0x10010000, heapBaseAddress=0x10040000, memoryMapBaseAddress=0xffff0000
     private void initializeDisplayBaseChoices() {
         int[] displayBaseAddressArray = {Memory.dataSegmentBaseAddress, Memory.globalPointer, Memory.dataBaseAddress,
-                Memory.heapBaseAddress, Memory.memoryMapBaseAddress, 0xff100000};
+                Memory.heapBaseAddress, Memory.memoryMapBaseAddress, 0xff100000, 0xff000000};
         // Must agree with above in number and order...
-        String[] descriptions = {" (global data)", " (gp)", " (static data)", " (heap)", " (frame 0)"," (frame 1)"};
+        String[] descriptions = {" (global data)", " (gp)", " (static data)", " (heap)", " (frame 0)"," (frame 1)", " (frame 0 + 1)"};
         displayBaseAddresses = displayBaseAddressArray;
         displayBaseAddressChoices = new String[displayBaseAddressArray.length];
         for (int i = 0; i < displayBaseAddressChoices.length; i++) {
