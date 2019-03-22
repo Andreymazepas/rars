@@ -1,8 +1,10 @@
 package rars.tools;
 
 import rars.riscv.hardware.AccessNotice;
+import rars.riscv.hardware.AddressErrorException;
 import rars.riscv.hardware.Memory;
 import rars.riscv.hardware.MemoryAccessNotice;
+import rars.Globals;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -86,8 +88,10 @@ public class BitmapDisplay extends AbstractToolAndApplication {
     private int[] displayBaseAddresses;
     private int defaultBaseAddressIndex;
     private int baseAddress;
+    private int videoFrameSelect;
 
     private Grid theGrid;
+
 
     /**
      * Simple constructor, likely used to run a stand-alone bitmap display tool.
@@ -139,15 +143,20 @@ public class BitmapDisplay extends AbstractToolAndApplication {
      * "Assemble and Run" button on a Mars-based app.
      */
     protected void addAsObserver() {
-        int highAddress = baseAddress + theGrid.getRows() * theGrid.getColumns() * Memory.WORD_LENGTH_BYTES;
-        // Special case: baseAddress<0 means we're in kernel memory (0x80000000 and up) and most likely
-        // in memory map address space (0xffff0000 and up).  In this case, we need to make sure the high address
-        // does not drop off the high end of 32 bit address space.  Highest allowable word address is 0xfffffffc,
-        // which is interpreted in Java int as -4.
-        if (baseAddress < 0 && highAddress > -4) {
-            highAddress = -4;
+        if(displayBaseAddressSelector.getSelectedIndex()== 6){
+            addAsObserver(0xff000000, 0xff200608);
+        } else {
+            int highAddress = baseAddress + theGrid.getRows() * theGrid.getColumns() * Memory.WORD_LENGTH_BYTES;
+            // Special case: baseAddress<0 means we're in kernel memory (0x80000000 and up) and most likely
+            // in memory map address space (0xffff0000 and up).  In this case, we need to make sure the high address
+            // does not drop off the high end of 32 bit address space.  Highest allowable word address is 0xfffffffc,
+            // which is interpreted in Java int as -4.
+            if (baseAddress < 0 && highAddress > -4) {
+                highAddress = -4;
+            }
+            addAsObserver(baseAddress, highAddress);
         }
-        addAsObserver(baseAddress, highAddress);
+
     }
 
 
@@ -414,11 +423,13 @@ public class BitmapDisplay extends AbstractToolAndApplication {
         String[] descriptions = {" (global data)", " (gp)", " (static data)", " (heap)", " (frame 0)"," (frame 1)", " (frame 0 + 1)"};
         displayBaseAddresses = displayBaseAddressArray;
         displayBaseAddressChoices = new String[displayBaseAddressArray.length];
-        for (int i = 0; i < displayBaseAddressChoices.length; i++) {
+        for (int i = 0; i < displayBaseAddressChoices.length-1; i++) {
             displayBaseAddressChoices[i] = rars.util.Binary.intToHexString(displayBaseAddressArray[i]) + descriptions[i];
         }
+        displayBaseAddressChoices[6] = descriptions[6];
         defaultBaseAddressIndex = 4;  // default 0xff000000 //default to 0x10010000 (static data)
         baseAddress = displayBaseAddressArray[defaultBaseAddressIndex];
+
     }
 
     // update based on combo box selection (currently not editable but that may change).
@@ -480,7 +491,83 @@ public class BitmapDisplay extends AbstractToolAndApplication {
 //            // If address is out of range for display, do nothing.
 //        }
 //    }
+
+        // copies the whole memory region in @address to the display
+        public  void changeVideoFrame(int address) {
+            int red, blue, green;
+            int value;
+            int offset = 0;
+            int transparencia = 0xC7; //1100 0111 =>
+            int redt = (transparencia & 0x07) << 21 | (transparencia & 0x07) << 18 | (transparencia & 0x06) << 16;
+            int greent = (transparencia & 0x38) << 10 | (transparencia & 0x38) << 7 | (transparencia & 0x30) << 5;
+            int bluet = (transparencia & 0xC0) | (transparencia & 0xC0)>>2 | (transparencia & 0xC0)>>4 | (transparencia & 0xC0)>>6 ;
+            int valuet=redt+greent+bluet;
+            int value0=0, value1=0, value2=0, value3=0;
+
+            for (int i = 0; i < theGrid.getRows(); i++) {
+                for (int j = 0; j < theGrid.getColumns(); j=j+4) {
+                    int fetchAddress = address + offset;
+                    offset += 4;
+                    try {value = Globals.memory.getWordNoNotify(fetchAddress);}
+                    catch(AddressErrorException e) {
+                        System.out.println(e);
+                        value = 0;
+                    };
+
+                    red = (value & 0x07) << 21 | (value & 0x07) << 18 | (value & 0x06) << 16;
+                    green = (value & 0x38) << 10 | (value & 0x38) << 7 | (value & 0x30) << 5;
+                    blue = (value & 0xC0) | (value & 0xC0)>>2 | (value & 0xC0)>>4 | (value & 0xC0)>>6 ;
+                    value0=red+green+blue;
+
+                    value=value>>8;
+
+                    red = (value & 0x07) << 21 | (value & 0x07) << 18 | (value & 0x06) << 16;
+                    green = (value & 0x38) << 10 | (value & 0x38) << 7 | (value & 0x30) << 5;
+                    blue = (value & 0xC0) | (value & 0xC0)>>2 | (value & 0xC0)>>4 | (value & 0xC0)>>6 ;
+                    value1=red+green+blue;
+
+                    value=value>>8;
+                    red = (value & 0x07) << 21 | (value & 0x07) << 18 | (value & 0x06) << 16;
+                    green = (value & 0x38) << 10 | (value & 0x38) << 7 | (value & 0x30) << 5;
+                    blue = (value & 0xC0) | (value & 0xC0)>>2 | (value & 0xC0)>>4 | (value & 0xC0)>>6 ;
+                    value2=red+green+blue;
+
+                    value=value>>8;
+                    red = (value & 0x07) << 21 | (value & 0x07) << 18 | (value & 0x06) << 16;
+                    green = (value & 0x38) << 10 | (value & 0x38) << 7 | (value & 0x30) << 5;
+                    blue = (value & 0xC0) | (value & 0xC0)>>2 | (value & 0xC0)>>4 | (value & 0xC0)>>6 ;
+                    value3=red+green+blue;
+
+
+                    if(value0!=valuet)
+                        theGrid.setElement(i, j, value0);
+
+                    if(value1!=valuet)
+                        theGrid.setElement(i, j+1, value1);
+
+                    if(value2!=valuet)
+                        theGrid.setElement(i, j+2, value2);
+
+                    if(value3!=valuet)
+                        theGrid.setElement(i, j+3, value3);
+
+                }
+            }
+        }
        private void updateColorForAddress(MemoryAccessNotice notice) {
+        //checks if it was for VIDEO_FRAME_SELECT
+           if((notice.getAddress() == 0xff200604) && displayBaseAddressSelector.getSelectedIndex()== 6){
+
+               if(notice.getValue() == 0){
+                   baseAddress = 0xff000000;
+                   changeVideoFrame(0xff000000);
+               } else {
+                   baseAddress = 0xff100000;
+                   changeVideoFrame(0xff100000);
+               }
+               return;
+           }
+
     	 //int redMask = 0x07, blueMask = 0xC0, greenMask = 0x38;
     	 int red, blue, green;
          int address = notice.getAddress();
