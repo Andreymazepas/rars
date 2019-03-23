@@ -58,6 +58,8 @@ public class BitmapDisplay extends AbstractToolAndApplication {
     private Graphics drawingArea;
     private JPanel canvas;
     private JPanel results;
+    private JTextField frameNumber;
+
 
     // Some GUI settings
     private EmptyBorder emptyBorder = new EmptyBorder(4, 4, 4, 4);
@@ -144,7 +146,9 @@ public class BitmapDisplay extends AbstractToolAndApplication {
      */
     protected void addAsObserver() {
         if(displayBaseAddressSelector.getSelectedIndex()== 6){
-            addAsObserver(0xff000000, 0xff200608);
+            frameNumber.setVisible(true);
+
+            addAsObserver(0xff000000, -4);
         } else {
             int highAddress = baseAddress + theGrid.getRows() * theGrid.getColumns() * Memory.WORD_LENGTH_BYTES;
             // Special case: baseAddress<0 means we're in kernel memory (0x80000000 and up) and most likely
@@ -366,6 +370,10 @@ public class BitmapDisplay extends AbstractToolAndApplication {
                     }
                 });
 
+        frameNumber = new JTextField( String.valueOf(videoFrameSelect), 1);
+        frameNumber.setEditable(false);
+        frameNumber.setVisible(false);
+
         // ALL COMPONENTS FOR "ORGANIZATION" SECTION
 
         JPanel unitWidthInPixelsRow = getPanelWithBorderLayout();
@@ -393,6 +401,12 @@ public class BitmapDisplay extends AbstractToolAndApplication {
         baseAddressRow.add(new JLabel("Base address for display "), BorderLayout.WEST);
         baseAddressRow.add(displayBaseAddressSelector, BorderLayout.EAST);
 
+        JPanel frameShow = getPanelWithBorderLayout();
+        frameShow.setBorder(emptyBorder);
+        frameShow.add(new JLabel("Showing frame: "), BorderLayout.WEST);
+        frameShow.add(frameNumber, BorderLayout.EAST);
+
+
 
         // Lay 'em out in the grid...
         organization.add(unitWidthInPixelsRow);
@@ -400,6 +414,7 @@ public class BitmapDisplay extends AbstractToolAndApplication {
         organization.add(widthInPixelsRow);
         organization.add(heightInPixelsRow);
         organization.add(baseAddressRow);
+        organization.add(frameShow);
         return organization;
     }
 
@@ -427,7 +442,7 @@ public class BitmapDisplay extends AbstractToolAndApplication {
             displayBaseAddressChoices[i] = rars.util.Binary.intToHexString(displayBaseAddressArray[i]) + descriptions[i];
         }
         displayBaseAddressChoices[6] = descriptions[6];
-        defaultBaseAddressIndex = 4;  // default 0xff000000 //default to 0x10010000 (static data)
+        defaultBaseAddressIndex = 6;  // default 0xff000000 //default to 0x10010000 (static data)
         baseAddress = displayBaseAddressArray[defaultBaseAddressIndex];
 
     }
@@ -559,14 +574,20 @@ public class BitmapDisplay extends AbstractToolAndApplication {
            if((notice.getAddress() == 0xff200604) && displayBaseAddressSelector.getSelectedIndex()== 6){
 
                if(notice.getValue() == 0){
+                   videoFrameSelect = 0;
+                   frameNumber.setText("0");
                    baseAddress = 0xff000000;
                    changeVideoFrame(0xff000000);
                } else {
+                   videoFrameSelect = 1;
+                   frameNumber.setText("1");
                    baseAddress = 0xff100000;
                    changeVideoFrame(0xff100000);
                }
                return;
            }
+           if(notice.getAddress() > 0xff112c00)
+               return;
 
     	 //int redMask = 0x07, blueMask = 0xC0, greenMask = 0x38;
     	 int red, blue, green;
